@@ -103,10 +103,8 @@ class LiveAgent(object):
 
     def _get_livepack(self, username, livekey):
         livepack = bytearray(500)
-        mid = bytearray([0xe4, 0x3e, 0x86, 0x02,
-                         0x00, 0x00, 0x00, 0x00,
-                         0x5c, 0x8f, 0xc2, 0xf5,
-                         0xf0, 0xa9, 0xdf, 0x40])
+        mid = [0xe4, 0x3e, 0x86, 0x02, 0x00, 0x00, 0x00, 0x00,
+            0x5c, 0x8f, 0xc2, 0xf5, 0xf0, 0xa9, 0xdf, 0x40]
         # 0x1e 心跳包
         for i, val in enumerate([0x82, 0x23, 0x1e]):
             livepack[i] = val
@@ -114,11 +112,11 @@ class LiveAgent(object):
         livepack[0x03] = (livekey & 0xff00) >> 8;
         livepack[0x04] = (livekey & 0x00ff)
         # 这一段不明含义
-        for i in range(0, 15):
+        for i in range(15):
             livepack[0x0b + i] = mid[i]
         # 用户名
-        for i in range(0, len(username)):
-            livepack[0x1f + i] = ord(username[i])
+        for i, val in enumerate(username):
+            livepack[0x1f + i] = ord(val)
         # ??
         pos = 31 + len(username) - 1
         spider = bytearray([0x09, 0x00, 0x00, 0x00, 0x53, 0x70, 0x69, 0x64, 0x65, 0x72, 0x6d, 0x61, 0x6e])
@@ -135,7 +133,7 @@ class LiveAgent(object):
             if True:
                 return False
             # 分析账号余额
-            
+
 
 def get_account():
     account_list = [
@@ -158,7 +156,7 @@ if __name__ == '__main__':
         while True:
             try:
                 login_flag = client_agent.handshake(username, password)
-                # 完成一次握手过程
+                # 完成一次连接过程
                 break
             except socket.error:
                 # 网络错误 等待重试
@@ -174,4 +172,4 @@ if __name__ == '__main__':
             # 登陆成功
             live_agent = LiveAgent(username, client_agent.livekey)
             live_agent.cast_coins()
-            # 网络连接出错 进入下一次循环
+            # 外网连接出现问题 进入下一次循环
