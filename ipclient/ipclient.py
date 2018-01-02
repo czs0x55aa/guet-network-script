@@ -1,10 +1,7 @@
-# coding=utf-8
-import socket, time
-import hashlib, os
-import sys
-import binascii
-
-# 读取配置信息
+# coding=utf8
+import socket
+import hashlib
+import util
 
 pack_template = bytearray([0x82, 0x23, 0x21, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00,
@@ -21,24 +18,18 @@ pack_template = bytearray([0x82, 0x23, 0x21, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x71, 0x77, 0x65, 0x72, 0x74, 0x79,
                     0x75, 0x69, 0x6f, 0x70])
 
-def to_hex(byte_arr):
-    hex_str = binascii.hexlify(byte_arr)
-    hex_str_list = ['0x' + hex_str[i: i+2] for i in range(0, len(hex_str), 2)]
-    for i in range(0, len(hex_str_list), 16):
-        print(' '.join(hex_str_list[i: i+16]))
-
-def hex_equal(source, target):
-    if len(source) != len(target):
-        return False
-    for a, b in zip(source, target):
-        if a != b:
-            return False
-    return True
+def accounts_generator(accounts):
+    account_list = [(x['username'], x['password']) for x in accounts]
+    while True:
+        # 无限循环账号列表
+        for username, passwd in account_list:
+            yield username, passwd
 
 class ClientAgent(object):
-    def __init__(self):
-        self.addr = ('172.16.1.1', 5300)
+    def __init__(self, addr, port):
+        self.addr = (addr, port)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.settimeout(5)
 
     def handshake(self, username, password):
         print('Sending Handshake Packet...')
@@ -49,14 +40,13 @@ class ClientAgent(object):
         _0x20 = sock.recv(1024)
         _0x20 = bytearray(_0x20)
         # 校验控制字段
-        if hex_equal(_0x20[:3], [0x82, 0x23, 0x20]) is True:
+        if util.hex_equal(_0x20[:3], [0x82, 0x23, 0x20]) is True:
             print('Receiving key packet...')
             _0x21 = self._get_0x21(_0x20, username, password)
             sock.send(self._get_0x21(_0x20, username, password))
             _0x22 = sock.recv(1024)
             _0x22 = bytearray(_0x22)
-            to_hex(_0x22)
-            if hex_equal(_0x22[:4], [0x82, 0x23, 0x22, 0x00]):
+            if util.hex_equal(_0x22[:4], [0x82, 0x23, 0x22, 0x00]):
                 # 开放成功
                 return True
         # 连接失败
@@ -96,10 +86,12 @@ class ClientAgent(object):
             hex_pack[0x21+i] = val
         return hex_pack
 
+
 class LiveAgent(object):
-    def __init__(self, username, livekey):
-        self.addr = ('172.16.1.1', 5301)
-        self.pack = self._get_livepack(username, livekey)
+    def __init__(self, addr, port):
+        self.addr = (addr, port)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.settimeout(5)
 
     def _get_livepack(self, username, livekey):
         livepack = bytearray(500)
@@ -124,52 +116,13 @@ class LiveAgent(object):
             livepack[pos + i + 1] = spider[i]
         return livepack
 
-    def cast_coins(self):
-        # 持续发送心跳
-        while True:
-            time.sleep(60)
-            ret = self.sock.sendto(self.livepack, self.addr)
-            # 检查网络状态 无法连通则结束循环
-            if True:
-                return False
-            # 分析账号余额
-
-
-def get_account():
-    account_list = [
-        ('1501111111', '123456'),
-        ('1501111111', '123456'),
-        ('1501111111', '123456'),
-    ]
-    while True:
-        # 无限循环账号列表
-        for username, passwd in account_list:
-            yield username, passwd
-
-if __name__ == '__main__':
-    client_agent = ClientAgent()
-    while True:
-        # 获取一个新的账号
-        username, password = get_account()
-        login_flag = False
-        # 开放出校器
-        while True:
-            try:
-                login_flag = client_agent.handshake(username, password)
-                # 完成一次连接过程
-                break
-            except socket.error:
-                # 网络错误 等待重试
-                # 判断是否能够获取到IP
-                if True:
-                    time.sleep(60)
-                else:
-                    # 获取不到ip 长时等待
-                    time.sleep(60 * 10)
-                continue
-        # 判断登陆状态
-        if login_flag is True:
-            # 登陆成功
-            live_agent = LiveAgent(username, client_agent.livekey)
-            live_agent.cast_coins()
-            # 外网连接出现问题 进入下一次循环
+    def cast_coins(self, username, livekey):
+        live_pack = self._get_livepack(username, livekey)
+        # 发送心跳包
+        try:
+            ret = self.sock.sendto(live_pack, self.addr)
+            print('send live packet.')
+            # TODO 分析账号余额...
+            return True
+        except socket.error:
+            return False

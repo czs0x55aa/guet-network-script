@@ -1,0 +1,11 @@
+{
+    "open_server": {"addr": "172.16.1.1", "port": 5300 },
+    "live_server": {"addr": "172.16.1.1", "port": 5301 },
+    "test_server": {"addr": "baidu.com"},
+    "wait_sec": 60,
+    "accounts": [
+        {"username": "1503303003", "password": "7412369"},
+        {"username": "1501111111", "password": "123456"},
+        {"username": "1501111111", "password": "123456"}
+    ]
+}
